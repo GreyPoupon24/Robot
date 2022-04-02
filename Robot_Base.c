@@ -273,6 +273,76 @@ int perim1,perim2,i;
 
 }
 
+void TurnLeft() {
+	
+	TRISAbits.TRISA0 = 0;   // set RA0 as an output
+	TRISAbits.TRISA1 = 0;   // set RA1 as an output
+	TRISBbits.TRISB0 = 0;   // set RB0 as an output
+	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 1;		// set RA1 as 1
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 1;		// set RB1 as 1
+
+}
+
+void TurnRight() {
+
+	TRISAbits.TRISA0 = 0;   // set RA0 as an output
+	TRISAbits.TRISA1 = 0;   // set RA1 as an output
+	TRISBbits.TRISB0 = 0;   // set RB0 as an output
+	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+
+	LATAbits.LATA0 = 1;		// set RA0 as 1
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 1;		// set RB0 as 1
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
+void MoveBackwards() {
+
+	TRISAbits.TRISA0 = 0;   // set RA0 as an output
+	TRISAbits.TRISA1 = 0;   // set RA1 as an output
+	TRISBbits.TRISB0 = 0;   // set RB0 as an output
+	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 1;		// set RA1 as 1
+	LATBbits.LATB0 = 1;		// set RB0 as 1
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
+void MoveForwards() {
+
+	TRISAbits.TRISA0 = 0;   // set RA0 as an output
+	TRISAbits.TRISA1 = 0;   // set RA1 as an output
+	TRISBbits.TRISB0 = 0;   // set RB0 as an output
+	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+
+	LATAbits.LATA0 = 1;		// set RA0 as 1
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 1;		// set RB1 as 1
+
+}
+
+void WheelStop() {
+
+	TRISAbits.TRISA0 = 0;   // set RA0 as an output
+	TRISAbits.TRISA1 = 0;   // set RA1 as an output
+	TRISBbits.TRISB0 = 0;   // set RB0 as an output
+	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
 
 // In order to keep this as nimble as possible, avoid
 // using floating point or printf() on any of its forms!
