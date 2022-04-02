@@ -1,328 +1,406 @@
-#define F_CPU 16000000UL
-
-#include <avr/io.h>
-#include <avr/interrupt.h>
+#include <XC.h>
+#include <sys/attribs.h>
 #include <stdio.h>
-#include <stdbool.h>
-#include <util/delay.h>
-#include "usart.h"
+#include <stdlib.h>
+ 
+// Configuration Bits (somehow XC32 takes care of this)
+#pragma config FNOSC = FRCPLL       // Internal Fast RC oscillator (8 MHz) w/ PLL
+#pragma config FPLLIDIV = DIV_2     // Divide FRC before PLL (now 4 MHz)
+#pragma config FPLLMUL = MUL_20     // PLL Multiply (now 80 MHz)
+#pragma config FPLLODIV = DIV_2     // Divide After PLL (now 40 MHz) 
+#pragma config FWDTEN = OFF         // Watchdog Timer Disabled
+#pragma config FPBDIV = DIV_1       // PBCLK = SYCLK
+#pragma config FSOSCEN = OFF        // Turn off secondary oscillator on A4 and B4
 
-#define ISR_FREQ 100000L // Interrupt service routine tick is 10 us
-#define OCR0_RELOAD ((F_CPU/ISR_FREQ)-1)
+// Defines
+#define SYSCLK 40000000L
+#define FREQ 100000L // We need the ISR for timer 1 every 10 us
+#define Baud2BRG(desired_baud)( (SYSCLK / (16*desired_baud))-1)
 
-volatile int ISR_pw1=150, ISR_pw2=150, ISR_cnt=0;
+volatile int ISR_pwm1=150, ISR_pwm2=150, ISR_cnt=0;
 
-// 'Timer 0 output compare A' Interrupt Service Routine
-// This ISR happens at a rate of 100kHz.  It is used
-// to generate two standard hobby servo 50Hz signal with
-// a pulse width of 0.6ms to 2.4ms.
-ISR(TIMER0_COMPA_vect)
+// The Interrupt Service Routine for timer 1 is used to generate one or more standard
+// hobby servo signals.  The servo signal has a fixed period of 20ms and a pulse width
+// between 0.6ms and 2.4ms.
+void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1_Handler(void)
 {
-	OCR0A = OCR0A + OCR0_RELOAD;
+	IFS0CLR=_IFS0_T1IF_MASK; // Clear timer 1 interrupt flag, bit 4 of IFS0
+
 	ISR_cnt++;
-	if(ISR_cnt==ISR_pw1)
+	if(ISR_cnt==ISR_pwm1)
 	{
-		PORTD &= ~(1<<7); // PD7=0
+		LATAbits.LATA3 = 0;
 	}
-	if(ISR_cnt==ISR_pw2)
+	if(ISR_cnt==ISR_pwm2)
 	{
-		PORTB &= ~(1<<0); // PB0=0
+		LATBbits.LATB4 = 0;
 	}
 	if(ISR_cnt>=2000)
 	{
 		ISR_cnt=0; // 2000 * 10us=20ms
-		PORTD |= (1<<7); // PD7=1
-		PORTB |= (1<<0); // PB0=1
+		LATAbits.LATA3 = 1;
+		LATBbits.LATB4 = 1;
 	}
 }
 
-void timer_init0 (void)
+void SetupTimer1 (void)
 {
-    cli();// disable global interupt
-    TCCR0A = 0;// set entire TCCR1A register to 0
-    TCCR0B = 0;// same for TCCR1B
-    TCNT0  = 0;//initialize counter value to 0
-    // set compare match register for 100khz increments
-    OCR0A = OCR0_RELOAD;// = (16*10^6) / (1*100000) - 1 (must be <255)   
-    TCCR0B |= (1 << WGM12); // turn on CTC mode   
-    TCCR0B |= (1 << CS10); // Set CS10 bits for 1 prescaler  
-    TIMSK0 |= (1 << OCIE0A); // enable timer compare interrupt    
-    sei(); // enable global interupt
+	// Explanation here: https://www.youtube.com/watch?v=bu6TTZHnMPY
+	__builtin_disable_interrupts();
+	PR1 =(SYSCLK/FREQ)-1; // since SYSCLK/FREQ = PS*(PR1+1)
+	TMR1 = 0;
+	T1CONbits.TCKPS = 0; // 3=1:256 prescale value, 2=1:64 prescale value, 1=1:8 prescale value, 0=1:1 prescale value
+	T1CONbits.TCS = 0; // Clock source
+	T1CONbits.ON = 1;
+	IPC1bits.T1IP = 5;
+	IPC1bits.T1IS = 0;
+	IFS0bits.T1IF = 0;
+	IEC0bits.T1IE = 1;
+	
+	INTCONbits.MVEC = 1; //Int multi-vector
+	__builtin_enable_interrupts();
 }
 
-void timer_init1 (void)
-{
-	// Turn on timer with no prescaler on the clock.  We use it for delays and to measure period.
-	TCCR1B |= _BV(CS10); // Check page 110 of ATmega328P datasheet
-}
-
+// Use the core timer to wait for 1 ms.
 void wait_1ms(void)
 {
-	unsigned int saved_TCNT1;
-	
-	saved_TCNT1=TCNT1;
-	
-	while((TCNT1-saved_TCNT1)<(F_CPU/1000L)); // Wait for 1 ms to pass
+    unsigned int ui;
+    _CP0_SET_COUNT(0); // resets the core timer count
+
+    // get the core timer count
+    while ( _CP0_GET_COUNT() < (SYSCLK/(2*1000)) );
 }
 
-void waitms(int ms)
+void waitms(int len)
 {
-	while(ms--) wait_1ms();
+	while(len--) wait_1ms();
 }
 
-#define PIN_PERIOD (PINB & (1<<1)) // PB1
+#define PIN_PERIOD (PORTB&(1<<5))
 
-// GetPeriod() seems to work fine for frequencies between 30Hz and 300kHz.
+// GetPeriod() seems to work fine for frequencies between 200Hz and 700kHz.
 long int GetPeriod (int n)
 {
-	int i, overflow;
+	int i;
 	unsigned int saved_TCNT1a, saved_TCNT1b;
 	
-	overflow=0;
-	TIFR1=1; // TOV1 can be cleared by writing a logic one to its bit location.  Check ATmega328P datasheet page 113.
+    _CP0_SET_COUNT(0); // resets the core timer count
 	while (PIN_PERIOD!=0) // Wait for square wave to be 0
 	{
-		if(TIFR1&1)	{ TIFR1=1; overflow++; if(overflow>5) return 0;}
+		if(_CP0_GET_COUNT() > (SYSCLK/4)) return 0;
 	}
-	overflow=0;
-	TIFR1=1;
+
+    _CP0_SET_COUNT(0); // resets the core timer count
 	while (PIN_PERIOD==0) // Wait for square wave to be 1
 	{
-		if(TIFR1&1)	{ TIFR1=1; overflow++; if(overflow>5) return 0;}
+		if(_CP0_GET_COUNT() > (SYSCLK/4)) return 0;
 	}
 	
-	overflow=0;
-	TIFR1=1;
-	saved_TCNT1a=TCNT1;
+    _CP0_SET_COUNT(0); // resets the core timer count
 	for(i=0; i<n; i++) // Measure the time of 'n' periods
 	{
 		while (PIN_PERIOD!=0) // Wait for square wave to be 0
 		{
-			if(TIFR1&1)	{ TIFR1=1; overflow++; if(overflow>1024) return 0;}
+			if(_CP0_GET_COUNT() > (SYSCLK/4)) return 0;
 		}
 		while (PIN_PERIOD==0) // Wait for square wave to be 1
 		{
-			if(TIFR1&1)	{ TIFR1=1; overflow++; if(overflow>1024) return 0;}
+			if(_CP0_GET_COUNT() > (SYSCLK/4)) return 0;
 		}
 	}
-	saved_TCNT1b=TCNT1;
-	if(saved_TCNT1b<saved_TCNT1a) overflow--; // Added an extra overflow.  Get rid of it.
 
-	return overflow*0x10000L+(saved_TCNT1b-saved_TCNT1a);
+	return  _CP0_GET_COUNT();
 }
-
-void adc_init(void)
+ 
+void UART2Configure(int baud_rate)
 {
-    ADMUX = (1<<REFS0);
-    ADCSRA = (1<<ADEN)|(1<<ADPS2)|(1<<ADPS1)|(1<<ADPS0);
+    // Peripheral Pin Select
+    U2RXRbits.U2RXR = 4;    //SET RX to RB8
+    RPB9Rbits.RPB9R = 2;    //SET RB9 to TX
+
+    U2MODE = 0;         // disable autobaud, TX and RX enabled only, 8N1, idle=HIGH
+    U2STA = 0x1400;     // enable TX and RX
+    U2BRG = Baud2BRG(baud_rate); // U2BRG = (FPb / (16*baud)) - 1
+    
+    U2MODESET = 0x8000;     // enable UART2
 }
 
-uint16_t adc_read(int channel)
+void uart_puts(char * s)
 {
-    channel &= 0x7;
-    ADMUX = (ADMUX & 0xf8)|channel;
-     
-    ADCSRA |= (1<<ADSC);
-     
-    while(ADCSRA & (1<<ADSC)); //as long as ADSC pin is 1 just wait.
-     
-    return (ADCW);
+	while(*s)
+	{
+		putchar(*s);
+		s++;
+	}
 }
 
-void PrintNumber(long int N, int Base, int digits)
+char HexDigit[]="0123456789ABCDEF";
+void PrintNumber(long int val, int Base, int digits)
 { 
-	char HexDigit[]="0123456789ABCDEF";
 	int j;
 	#define NBITS 32
 	char buff[NBITS+1];
 	buff[NBITS]=0;
 
 	j=NBITS-1;
-	while ( (N>0) | (digits>0) )
+	while ( (val>0) | (digits>0) )
 	{
-		buff[j--]=HexDigit[N%Base];
-		N/=Base;
+		buff[j--]=HexDigit[val%Base];
+		val/=Base;
 		if(digits!=0) digits--;
 	}
-	usart_pstr(&buff[j+1]);
+	uart_puts(&buff[j+1]);
 }
 
-void ConfigurePins (void)
+// Good information about ADC in PIC32 found here:
+// http://umassamherstm5.org/tech-tutorials/pic32-tutorials/pic32mx220-tutorials/adc
+void ADCConf(void)
 {
-	DDRB  &= 0b11111101; // Configure PB1 as input
-	PORTB |= 0b00000010; // Activate pull-up in PB1
+    AD1CON1CLR = 0x8000;    // disable ADC before configuration
+    AD1CON1 = 0x00E0;       // internal counter ends sampling and starts conversion (auto-convert), manual sample
+    AD1CON2 = 0;            // AD1CON2<15:13> set voltage reference to pins AVSS/AVDD
+    AD1CON3 = 0x0f01;       // TAD = 4*TPB, acquisition time = 15*TAD 
+    AD1CON1SET=0x8000;      // Enable ADC
+}
+
+int ADCRead(char analogPIN)
+{
+    AD1CHS = analogPIN << 16;    // AD1CHS<16:19> controls which analog pin goes to the ADC
+ 
+    AD1CON1bits.SAMP = 1;        // Begin sampling
+    while(AD1CON1bits.SAMP);     // wait until acquisition is done
+    while(!AD1CON1bits.DONE);    // wait until conversion done
+ 
+    return ADC1BUF0;             // result stored in ADC1BUF0
+}
+
+void ConfigurePins(void)
+{
+    // Configure pins as analog inputs
+    ANSELBbits.ANSB2 = 1;   // set RB2 (AN4, pin 6 of DIP28) as analog pin
+    TRISBbits.TRISB2 = 1;   // set RB2 as an input
+    ANSELBbits.ANSB3 = 1;   // set RB3 (AN5, pin 7 of DIP28) as analog pin
+    TRISBbits.TRISB3 = 1;   // set RB3 as an input
+    
+	// Configure digital input pin to measure signal period
+	ANSELB &= ~(1<<5); // Set RB5 as a digital I/O (pin 14 of DIP28)
+    TRISB |= (1<<5);   // configure pin RB5 as input
+    CNPUB |= (1<<5);   // Enable pull-up resistor for RB5
+    
+    // Configure output pins
+	TRISAbits.TRISA0 = 0; // pin  2 of DIP28
+	TRISAbits.TRISA1 = 0; // pin  3 of DIP28
+	TRISBbits.TRISB0 = 0; // pin  4 of DIP28
+	TRISBbits.TRISB1 = 0; // pin  5 of DIP28
+	TRISAbits.TRISA2 = 0; // pin  9 of DIP28
+	TRISAbits.TRISA3 = 0; // pin 10 of DIP28
+	TRISBbits.TRISB4 = 0; // pin 11 of DIP28
+	INTCONbits.MVEC = 1;
+}
+
+int detect_metal(float average){
+	float count,f;
 	
-	DDRD  |= 0b11111100; // PD[7..2] configured as outputs
-	PORTD &= 0b00000011; // PD[7..2] = 0
+		count=GetPeriod(100);
+		f=(count*2.0)/(SYSCLK*100.0);
+		f=1.0/f;
+		//uart_puts("f=");
+		//PrintNumber(f, 10, 3);
+		//uart_puts("\n");
+		//frequency found
+		if(f>16730){
+		return 1;
+		}
+		else{
+		return 0;
+		}
+
+}
+
+int detect_perimeter(){
+float vmax,voltage;
+int perim1,perim2,i;	
+		//read peak value from first peak detector
+		vmax=0;
+		for(i=0;i<100;i++){
+		voltage=ADCRead(4)*3.3/1023.0;
+			if(voltage>vmax){
+				vmax=voltage;
+			}
+		}
+	uart_puts("v1=");
+	PrintNumber(vmax, 10, 3);
+	uart_puts("\n");
+		//now vmax stores maximum voltage, use it to trigger flag
+		if(vmax>0.3){
+			perim1=1;
+		}
+		else{
+			perim1=0;
+		}
+			
+		//read peak value from second peak detector
+		vmax=0;
+		for(i=0;i<100;i++){
+		voltage=ADCRead(5)*3.3/1023.0;
+
+			if(voltage>vmax){
+				vmax=voltage;
+			}
+		}
+		uart_puts("v2=");
+		//PrintNumber(vmax, 10, 3);
+		printf("v2= %f",vmax);
 	
-	DDRB  |= 0b00000001; // PB0 configured as output
-	PORTB &= 0x11111110; // PB0 = 0
-}
+		uart_puts("\n");	
+		//now vmax stores maximum voltage, use it to trigger flag
+		if(vmax>0.3){
+			perim2=1;
+		}
+		else{
+			perim2=0;
+		}
+		
+		//trigger LED if either perimiter detector works
+		if((perim1||perim2)==1){
+			return 1;
 
-void TurnRight() {
-	//left wheel = RA0 and RA1
-	//right wheel = RB0 and RB1
+		}
+		else{
+			return 0;
+		}
 
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 1;		// set RA1 as 1
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 1;		// set RB1 as 1
-
-}
-
-void TurnLeft() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 1;		// set RA0 as 1
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 1;		// set RB0 as 1
-	LATBbits.LATB1 = 0;		// set RB1 as 0
-
-}
-
-void MoveForwards() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 1;		// set RA1 as 1
-	LATBbits.LATB0 = 1;		// set RB0 as 1
-	LATBbits.LATB1 = 0;		// set RB1 as 0
-
-}
-
-void MoveBackwards() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 1;		// set RA0 as 1
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 1;		// set RB1 as 1
-
-}
-
-void WheelStop() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 0;		// set RB1 as 0
 
 }
 
 
 // In order to keep this as nimble as possible, avoid
 // using floating point or printf() on any of its forms!
-int main (void)
-{
-	unsigned int adc;
-	unsigned long int v;
-	long int count, f;
+void main(void)
+{	
+
+	TRISBbits.TRISB6 = 0; //pin6 is output for LED
+	TRISBbits.TRISB4 = 0; //pin4 is output for LED
+	float average;
+	int perim1,perim2,perim,i,metal;
+	float voltage,vmax;
+	volatile unsigned long t=0;
+    int adcval;
+    long int v;
+	unsigned long int count, f;
 	unsigned char LED_toggle=0;
 	
-	usart_init(); // configure the usart and baudrate
-	adc_init();
-	ConfigurePins();
-	timer_init0();
-	timer_init1();
-
-	waitms(500); // Wait for putty to start
-
-	usart_pstr("\x1b[2J\x1b[1;1H"); // Clear screen using ANSI escape sequence.
-	usart_pstr("\r\nATMega328P multi I/O example.\r\n");
-	usart_pstr("Measures the voltage at channels 0 and 1 (pins 23 and 24 of DIP28 package)\r\n");
-	usart_pstr("Measures period on PB1 (pin 15 of DIP28 package)\r\n");
-	usart_pstr("Toggles PD2, PD3, PD4, PD5, PD6 (pins 4, 5, 6, 11, 12 of DIP28 package)\r\n");
-	usart_pstr("Generates Servo PWMs in PD7, PB0 (13, 14 of DIP28 package)\r\n\r\n");
-
+	CFGCON = 0;
+  
+    UART2Configure(115200);  // Configure UART2 for a baud rate of 115200
+    ConfigurePins();
+    SetupTimer1();
+  
+    ADCConf(); // Configure ADC
+    
+    TRISBbits.TRISB6 = 0;
+	LATBbits.LATB6 = 0;	
+    
+    waitms(500); // Give PuTTY time to start
+	uart_puts("\x1b[2J\x1b[1;1H"); // Clear screen using ANSI escape sequence.
+	uart_puts("\r\nPIC32 multi I/O example.\r\n");
+	uart_puts("Measures the voltage at channels 4 and 5 (pins 6 and 7 of DIP28 package)\r\n");
+	uart_puts("Measures period on RB5 (pin 14 of DIP28 package)\r\n");
+	uart_puts("Toggles RA0, RA1, RB0, RB1, RA2 (pins 2, 3, 4, 5, 9, of DIP28 package)\r\n");
+	uart_puts("Generates Servo PWM signals at RA3, RB4 (pins 10, 11 of DIP28 package)\r\n\r\n");
+	
+	//for metal detector self calibration
+	average=0;
+	for(i=0;i<10;i++){
+	count=GetPeriod(100);
+	f=(count*2.0)/(SYSCLK*100.0);
+	f=1.0/f;
+	average+=f;
+	}
+	average=average/10.0;
+	
+	
+	
 	while(1)
 	{
-		adc=adc_read(0);
-		v=(adc*5000L)/1023L;
-		usart_pstr("ADC[0]=0x");
-		PrintNumber(adc, 16, 3);
-		usart_pstr(", ");
+	
+	
+		LATBbits.LATB6=detect_metal(average);
+		LATBbits.LATB4=detect_perimeter();
+	
+	
+
+	
+	
+
+	
+	
+	
+/*   	adcval = ADCRead(4); // note that we call pin AN4 (RB2) by it's analog number
+		uart_puts("ADC[4]=0x");
+		PrintNumber(adcval, 16, 3);
+		uart_puts(", V=");
+		v=(adcval*3290L)/1023L; // 3.290 is VDD
 		PrintNumber(v/1000, 10, 1);
-		usart_pstr(".");
+		uart_puts(".");
 		PrintNumber(v%1000, 10, 3);
-		usart_pstr("V ");
-		
-		adc=adc_read(1);
-		v=(adc*5000L)/1023L;
-		usart_pstr("ADC[1]=0x");
-		PrintNumber(adc, 16, 3);
-		usart_pstr(", ");
+		uart_puts("V ");
+
+		adcval=ADCRead(5);
+		uart_puts("ADC[5]=0x");
+		PrintNumber(adcval, 16, 3);
+		uart_puts(", V=");
+		v=(adcval*3290L)/1023L; // 3.290 is VDD
 		PrintNumber(v/1000, 10, 1);
-		usart_pstr(".");
+		uart_puts(".");
 		PrintNumber(v%1000, 10, 3);
-		usart_pstr("V ");
-		
+		uart_puts("V ");
+
 		count=GetPeriod(100);
 		if(count>0)
 		{
-			f=(F_CPU*100L)/count;
-			usart_pstr("f=");
+			f=((SYSCLK/2L)*100L)/count;
+			uart_puts("f=");
 			PrintNumber(f, 10, 7);
-			usart_pstr("Hz, count=");
+			uart_puts("Hz, count=");
 			PrintNumber(count, 10, 6);
-			usart_pstr("          \r");
+			uart_puts("          \r");
 		}
 		else
 		{
-			usart_pstr("NO SIGNAL                     \r");
+			uart_puts("NO SIGNAL                     \r");
 		}
-
+*/
 		// Now toggle the pins on/off to see if they are working.
 		// First turn all off:
-		PORTD &= ~(1<<2); // PD2=0
-		PORTD &= ~(1<<3); // PD3=0
-		PORTD &= ~(1<<4); // PD4=0
-		PORTD &= ~(1<<5); // PD5=0
-		PORTD &= ~(1<<6); // PD6=0
+	/*	LATAbits.LATA0 = 0;	
+		LATAbits.LATA1 = 0;			
+		LATBbits.LATB0 = 0;			
+		LATBbits.LATB1 = 0;		
+		LATAbits.LATA2 = 0;			
 		// Now turn on one of the outputs per loop cycle to check
 		switch (LED_toggle++)
 		{
 			case 0:
-				PORTD |= (1<<2); // PD2=1
+				LATAbits.LATA0 = 1;
 				break;
 			case 1:
-				PORTD |= (1<<3); // PD3=1
+				LATAbits.LATA1 = 1;
 				break;
 			case 2:
-				PORTD |= (1<<4); // PD4=1
+				LATBbits.LATB0 = 1;
 				break;
 			case 3:
-				PORTD |= (1<<5); // PD5=1
+				LATBbits.LATB1 = 1;
 				break;
 			case 4:
-				PORTD |= (1<<6); // PD6=1
+				LATAbits.LATA2 = 1;
 				break;
 			default:
 				break;
 		}
 		if(LED_toggle>4) LED_toggle=0;
-		
-		_delay_ms(200);
+*/
+		waitms(10);
 	}
 }
