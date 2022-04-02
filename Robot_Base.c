@@ -228,9 +228,9 @@ int perim1,perim2,i;
 				vmax=voltage;
 			}
 		}
-	uart_puts("v1=");
-	PrintNumber(vmax, 10, 3);
-	uart_puts("\n");
+
+		printf("v1= %f \n",vmax);
+	
 		//now vmax stores maximum voltage, use it to trigger flag
 		if(vmax>0.3){
 			perim1=1;
@@ -248,11 +248,11 @@ int perim1,perim2,i;
 				vmax=voltage;
 			}
 		}
-		uart_puts("v2=");
+
 		//PrintNumber(vmax, 10, 3);
-		printf("v2= %f",vmax);
+		printf("v2= %f \n",vmax);
 	
-		uart_puts("\n");	
+	
 		//now vmax stores maximum voltage, use it to trigger flag
 		if(vmax>0.3){
 			perim2=1;
