@@ -263,12 +263,12 @@ void stop() {
 void pick_up_coin(){
 
 int i;
-		waitms(1000);
+		waitms(250);
 		ISR_pwm1=95;
-		waitms(1000);
+		waitms(250);
 
 		ISR_pwm2=240;
-		waitms(1000);
+		waitms(250);
 
 		ISR_pwm1=60;
 		waitms(1000);
@@ -283,19 +283,31 @@ int i;
 		//turn ISR_pwm1 from 60 to 200 over a few seconds
 		waitms(100);
 		waitms(100);
+		ISR_pwm1=70;
+		waitms(100);
 		ISR_pwm1=80;
+		waitms(100);
+		ISR_pwm1=90;
 		waitms(100);
 		ISR_pwm1=100;
 		waitms(100);
+		ISR_pwm1=110;
+		waitms(100);
 		ISR_pwm1=120;
 		waitms(100);
-		ISR_pwm1=140;
+				ISR_pwm1=130;
 		waitms(100);
-		ISR_pwm1=160;
+				ISR_pwm1=140;
+		waitms(100);
+				ISR_pwm1=150;
+		waitms(100);
+				ISR_pwm1=160;
+		waitms(100);
+				ISR_pwm1=170;
+		waitms(100);
+				ISR_pwm1=180;
 		waitms(100);
 		ISR_pwm1=180;
-		waitms(100);
-		ISR_pwm1=200;
 		waitms(200);
 
 		//bring ISR_pwm1 from 200 to 180
@@ -303,7 +315,7 @@ int i;
 		//ISR_pwm1=200-2*i;
 		//waitms(50);
 		//}
-		ISR_pwm1=180;
+		ISR_pwm1=160;
 		waitms(1000);
 
 	
@@ -319,9 +331,9 @@ int i;
 		waitms(1000);
 
 		
-		//bring ISR_pwm1 from 180 to 240
-		for(i=0;i<15;i++){
-		ISR_pwm1=180+i*4;
+		//bring ISR_pwm1 from 160 to 240
+		for(i=0;i<20;i++){
+		ISR_pwm1=160+i*4;
 		waitms(100);
 		}
 		
@@ -362,7 +374,7 @@ int detect_metal(float average){
 		//uart_puts("\r");
 		waitms(100);
 		//frequency found
-		if(f>53200){
+		if(f>58500){
 		return 1;
 		}
 		else{
@@ -385,7 +397,7 @@ int perim1,perim2,i;
 
 		//printf("%f \r",vmax);
 		//now vmax stores maximum voltage, use it to trigger flag
-		if(vmax>1.0){
+		if(vmax>0.3){
 			perim1=1;
 		}
 		else{
@@ -410,7 +422,7 @@ int perim1,perim2,i;
 	
 	
 		//now vmax stores maximum voltage, use it to trigger flag
-		if(vmax>1.0){
+		if(vmax>0.5){
 			perim2=1;
 		}
 		else{
@@ -434,8 +446,8 @@ int perim1,perim2,i;
 int random_time(seed,n){
 
 		int temp;
-		temp=124859+3571805*seed*n;
-		temp=temp%4000;
+		temp=124859+7919*((seed*4999)%5)*((n*8278)%5209);
+		temp=temp%1999;
 		
 		if(temp<1000){
 			temp=temp+1000;
@@ -505,7 +517,7 @@ void main(void)
 		//LATBbits.LATB6=detect_metal(average);
 		//LATBbits.LATB4=detect_perimeter();
 	
-	pick_up_coin();
+	//pick_up_coin();
 	
 
 
@@ -519,20 +531,20 @@ void main(void)
 		stop();
 		waitms(100);
 		move_backwards(); //move to position of metal
-		waitms(250);
+		waitms(400);
 		stop();
 		waitms(100);
-		pick_up_coin();
+		pick_up_coin(); //grab the coin once in position
 		waitms(100);
 	}
 	
 	move_forwards(); //move forwards by defualt
 		
 	if(detect_perimeter()){
-		move_backwards();
-		waitms(250);
-		turn_right();
-		waitms(random_time(2,n));
+		move_backwards(); //back up to not pass the perimeter when turning
+		waitms(500);
+		turn_right(); //change trajectory
+		waitms(random_time(7,n));
 		stop();
 		n++;
 		
