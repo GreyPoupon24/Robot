@@ -17,11 +17,17 @@
 #define FREQ 100000L // We need the ISR for timer 1 every 10 us
 #define Baud2BRG(desired_baud)( (SYSCLK / (16*desired_baud))-1)
 
-volatile int ISR_pwm1=150, ISR_pwm2=150, ISR_cnt=0;
+volatile int ISR_pwm1=95, ISR_pwm2=240, ISR_cnt=0;
 
 // The Interrupt Service Routine for timer 1 is used to generate one or more standard
-// hobby servo signals.  The servo signal has a fixed period of 20ms and a pulse width
+// hobby  signals.  The servo signal has a fixed period of 20ms and a pulse width
 // between 0.6ms and 2.4ms.
+
+
+
+//FUNDEMENTAL FUNCTIONS
+
+
 void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1_Handler(void)
 {
 	IFS0CLR=_IFS0_T1IF_MASK; // Clear timer 1 interrupt flag, bit 4 of IFS0
@@ -33,13 +39,13 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1_Handler(void)
 	}
 	if(ISR_cnt==ISR_pwm2)
 	{
-		LATBbits.LATB4 = 0;
+		LATBbits.LATB6 = 0;
 	}
 	if(ISR_cnt>=2000)
 	{
 		ISR_cnt=0; // 2000 * 10us=20ms
 		LATAbits.LATA3 = 1;
-		LATBbits.LATB4 = 1;
+		LATBbits.LATB6 = 1;
 	}
 }
 
@@ -195,8 +201,156 @@ void ConfigurePins(void)
 	TRISAbits.TRISA2 = 0; // pin  9 of DIP28
 	TRISAbits.TRISA3 = 0; // pin 10 of DIP28
 	TRISBbits.TRISB4 = 0; // pin 11 of DIP28
+	TRISBbits.TRISB6 = 0; //RB6 is output for arm raise servo
+	TRISBbits.TRISB15 = 0; //RB6 is output for arm raise servo
+
 	INTCONbits.MVEC = 1;
 }
+
+
+//H BRIDGE FUNCTOINS
+
+void turn_left() {
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 1;		// set RA1 as 1
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 1;		// set RB1 as 1
+
+}
+
+
+void turn_right() {
+
+
+	LATAbits.LATA0 = 1;		// set RA0 as 1
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 1;		// set RB0 as 1
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
+void move_backwards() {
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 1;		// set RA1 as 1
+	LATBbits.LATB0 = 1;		// set RB0 as 1
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
+void move_forwards() {
+
+	LATAbits.LATA0 = 1;		// set RA0 as 1
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 1;		// set RB1 as 1
+
+}
+
+void stop() {
+
+	LATAbits.LATA0 = 0;		// set RA0 as 0
+	LATAbits.LATA1 = 0;		// set RA1 as 0
+	LATBbits.LATB0 = 0;		// set RB0 as 0
+	LATBbits.LATB1 = 0;		// set RB1 as 0
+
+}
+
+
+//SERVO ROUTINE
+
+void pick_up_coin(){
+
+int i;
+		waitms(1000);
+		ISR_pwm1=95;
+		waitms(1000);
+
+		ISR_pwm2=240;
+		waitms(1000);
+
+		ISR_pwm1=60;
+		waitms(1000);
+
+		ISR_pwm2=90;
+		//turn magnet on
+		waitms(1000);
+
+		LATBbits.LATB15 = 1;
+	
+	
+		//turn ISR_pwm1 from 60 to 200 over a few seconds
+		waitms(100);
+		waitms(100);
+		ISR_pwm1=80;
+		waitms(100);
+		ISR_pwm1=100;
+		waitms(100);
+		ISR_pwm1=120;
+		waitms(100);
+		ISR_pwm1=140;
+		waitms(100);
+		ISR_pwm1=160;
+		waitms(100);
+		ISR_pwm1=180;
+		waitms(100);
+		ISR_pwm1=200;
+		waitms(200);
+
+		//bring ISR_pwm1 from 200 to 180
+		//for(i=0;i<9;i++){
+		//ISR_pwm1=200-2*i;
+		//waitms(50);
+		//}
+		ISR_pwm1=180;
+		waitms(1000);
+
+	
+		//bring ISR_pwm2 from 90 to 180 with delays
+		 
+		for(i=0;i<=15;i++){
+		ISR_pwm2=90+i*8;
+		waitms(100);
+		
+		}
+		
+		
+		waitms(1000);
+
+		
+		//bring ISR_pwm1 from 180 to 240
+		for(i=0;i<15;i++){
+		ISR_pwm1=180+i*4;
+		waitms(100);
+		}
+		
+		ISR_pwm1=240;
+		waitms(1000);
+
+		//turn magnet off
+		LATBbits.LATB15 = 0;
+		waitms(1000);
+
+		for(i=1;i<=7;i++){
+		ISR_pwm1=240-i*20;
+		waitms(100);
+		}
+
+
+		ISR_pwm1=95;
+		waitms(1000);
+
+		ISR_pwm2=240;
+		waitms(1000);
+
+
+}
+
+
+
+//DETECTION ROUTINES
+
 
 int detect_metal(float average){
 	float count,f;
@@ -204,11 +358,11 @@ int detect_metal(float average){
 		count=GetPeriod(100);
 		f=(count*2.0)/(SYSCLK*100.0);
 		f=1.0/f;
-		//uart_puts("f=");
 		//PrintNumber(f, 10, 3);
-		//uart_puts("\n");
+		//uart_puts("\r");
+		waitms(100);
 		//frequency found
-		if(f>16730){
+		if(f>53200){
 		return 1;
 		}
 		else{
@@ -218,7 +372,7 @@ int detect_metal(float average){
 }
 
 int detect_perimeter(){
-float vmax,voltage;
+float vmax,voltage,vavg;
 int perim1,perim2,i;	
 		//read peak value from first peak detector
 		vmax=0;
@@ -229,10 +383,9 @@ int perim1,perim2,i;
 			}
 		}
 
-		printf("v1= %f \n",vmax);
-	
+		//printf("%f \r",vmax);
 		//now vmax stores maximum voltage, use it to trigger flag
-		if(vmax>0.3){
+		if(vmax>1.0){
 			perim1=1;
 		}
 		else{
@@ -241,20 +394,23 @@ int perim1,perim2,i;
 			
 		//read peak value from second peak detector
 		vmax=0;
+		vavg=0;
 		for(i=0;i<100;i++){
 		voltage=ADCRead(5)*3.3/1023.0;
+		vavg=vavg+voltage;
 
 			if(voltage>vmax){
 				vmax=voltage;
 			}
 		}
 
+
 		//PrintNumber(vmax, 10, 3);
-		printf("v2= %f \n",vmax);
+
 	
 	
 		//now vmax stores maximum voltage, use it to trigger flag
-		if(vmax>0.3){
+		if(vmax>1.0){
 			perim2=1;
 		}
 		else{
@@ -273,73 +429,18 @@ int perim1,perim2,i;
 
 }
 
-void TurnLeft() {
-	
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
+//RANDOM FUNCTION
 
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 1;		// set RA1 as 1
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 1;		// set RB1 as 1
+int random_time(seed,n){
 
-}
-
-void TurnRight() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 1;		// set RA0 as 1
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 1;		// set RB0 as 1
-	LATBbits.LATB1 = 0;		// set RB1 as 0
-
-}
-
-void MoveBackwards() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 1;		// set RA1 as 1
-	LATBbits.LATB0 = 1;		// set RB0 as 1
-	LATBbits.LATB1 = 0;		// set RB1 as 0
-
-}
-
-void MoveForwards() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 1;		// set RA0 as 1
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 1;		// set RB1 as 1
-
-}
-
-void WheelStop() {
-
-	TRISAbits.TRISA0 = 0;   // set RA0 as an output
-	TRISAbits.TRISA1 = 0;   // set RA1 as an output
-	TRISBbits.TRISB0 = 0;   // set RB0 as an output
-	TRISBbits.TRISB1 = 0;   // set RB1 as an output
-
-	LATAbits.LATA0 = 0;		// set RA0 as 0
-	LATAbits.LATA1 = 0;		// set RA1 as 0
-	LATBbits.LATB0 = 0;		// set RB0 as 0
-	LATBbits.LATB1 = 0;		// set RB1 as 0
+		int temp;
+		temp=124859+3571805*seed*n;
+		temp=temp%4000;
+		
+		if(temp<1000){
+			temp=temp+1000;
+		}
+		
 
 }
 
@@ -348,9 +449,10 @@ void WheelStop() {
 // using floating point or printf() on any of its forms!
 void main(void)
 {	
-
-	TRISBbits.TRISB6 = 0; //pin6 is output for LED
-	TRISBbits.TRISB4 = 0; //pin4 is output for LED
+	int n=0;
+	LATBbits.LATB15 = 0;
+	//TRISBbits.TRISB6 = 0; //pin6 is output for LED
+	//TRISBbits.TRISB4 = 0; //pin4 is output for LED
 	float average;
 	int perim1,perim2,perim,i,metal;
 	float voltage,vmax;
@@ -368,8 +470,8 @@ void main(void)
   
     ADCConf(); // Configure ADC
     
-    TRISBbits.TRISB6 = 0;
-	LATBbits.LATB6 = 0;	
+    //TRISBbits.TRISB6 = 0;
+	//LATBbits.LATB6 = 0;	
     
     waitms(500); // Give PuTTY time to start
 	uart_puts("\x1b[2J\x1b[1;1H"); // Clear screen using ANSI escape sequence.
@@ -382,7 +484,7 @@ void main(void)
 	//for metal detector self calibration
 	average=0;
 	for(i=0;i<10;i++){
-	count=GetPeriod(100);
+	//count=GetPeriod(100);
 	f=(count*2.0)/(SYSCLK*100.0);
 	f=1.0/f;
 	average+=f;
@@ -390,16 +492,56 @@ void main(void)
 	average=average/10.0;
 	
 	
-	
+	ISR_pwm1=95;
+	ISR_pwm2=240;
 	while(1)
 	{
 	
 	
-		LATBbits.LATB6=detect_metal(average);
-		LATBbits.LATB4=detect_perimeter();
+	//perim=detect_perimeter();
+	//PrintNumber(perim, 10, 3);
+	//metal=detect_metal(0.0);
+	//PrintNumber(metal, 10, 3);
+		//LATBbits.LATB6=detect_metal(average);
+		//LATBbits.LATB4=detect_perimeter();
 	
+	pick_up_coin();
 	
 
+
+
+//move forwards by default
+	move_forwards();
+
+
+//respond to metal
+	if(detect_metal(1)){
+		stop();
+		waitms(100);
+		move_backwards(); //move to position of metal
+		waitms(250);
+		stop();
+		waitms(100);
+		pick_up_coin();
+		waitms(100);
+	}
+	
+	move_forwards(); //move forwards by defualt
+		
+	if(detect_perimeter()){
+		move_backwards();
+		waitms(250);
+		turn_right();
+		waitms(random_time(2,n));
+		stop();
+		n++;
+		
+	}	
+	
+	move_forwards(); //move forwards by defualt
+	
+	
+	
 	
 	
 
@@ -470,7 +612,7 @@ void main(void)
 				break;
 		}
 		if(LED_toggle>4) LED_toggle=0;
-*/
-		waitms(10);
+
+		*/
 	}
 }
