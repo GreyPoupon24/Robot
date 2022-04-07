@@ -461,6 +461,7 @@ int random_time(seed,n){
 // using floating point or printf() on any of its forms!
 void main(void)
 {	
+	int counter=0;
 	int n=0;
 	LATBbits.LATB15 = 0;
 	//TRISBbits.TRISB6 = 0; //pin6 is output for LED
@@ -509,6 +510,10 @@ void main(void)
 	while(1)
 	{
 	
+	if(counter==20){
+		break;
+	}
+	
 	
 	//perim=detect_perimeter();
 	//PrintNumber(perim, 10, 3);
@@ -528,6 +533,7 @@ void main(void)
 
 //respond to metal
 	if(detect_metal(1)){
+		counter++;
 		stop();
 		waitms(100);
 		move_backwards(); //move to position of metal
@@ -627,4 +633,6 @@ void main(void)
 
 		*/
 	}
+	//stop after 20 coins
+	stop();
 }
