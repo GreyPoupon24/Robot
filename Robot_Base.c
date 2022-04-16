@@ -2,7 +2,7 @@
 #include <sys/attribs.h>
 #include <stdio.h>
 #include <stdlib.h>
- 
+ //nice
 // Configuration Bits (somehow XC32 takes care of this)
 #pragma config FNOSC = FRCPLL       // Internal Fast RC oscillator (8 MHz) w/ PLL
 #pragma config FPLLIDIV = DIV_2     // Divide FRC before PLL (now 4 MHz)
