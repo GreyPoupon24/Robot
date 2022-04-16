@@ -20,7 +20,7 @@
 volatile int ISR_pwm1=95, ISR_pwm2=240, ISR_cnt=0;
 
 // The Interrupt Service Routine for timer 1 is used to generate one or more standard
-// servo PWM signals.  The servo signal has a fixed period of 20ms and a pulse width
+// PWM control signals.  The servo signal has a fixed period of 20ms and a pulse width
 // between 0.6ms and 2.4ms.
 
 
@@ -51,7 +51,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1_Handler(void)
 
 void SetupTimer1 (void)
 {
-	// Explanation here: https://www.youtube.com/watch?v=bu6TTZHnMPY
+
 	__builtin_disable_interrupts();
 	PR1 =(SYSCLK/FREQ)-1; // since SYSCLK/FREQ = PS*(PR1+1)
 	TMR1 = 0;
@@ -84,7 +84,7 @@ void waitms(int len)
 
 #define PIN_PERIOD (PORTB&(1<<5))
 
-// GetPeriod() seems to work fine for frequencies between 200Hz and 700kHz.
+//determines the period of a square wave signal
 long int GetPeriod (int n)
 {
 	int i;
@@ -157,9 +157,7 @@ void PrintNumber(long int val, int Base, int digits)
 	}
 	uart_puts(&buff[j+1]);
 }
-
-// Good information about ADC in PIC32 found here:
-// http://umassamherstm5.org/tech-tutorials/pic32-tutorials/pic32mx220-tutorials/adc
+//configure analog-digital converters
 void ADCConf(void)
 {
     AD1CON1CLR = 0x8000;    // disable ADC before configuration
@@ -180,6 +178,7 @@ int ADCRead(char analogPIN)
     return ADC1BUF0;             // result stored in ADC1BUF0
 }
 
+//configures I/O pins
 void ConfigurePins(void)
 {
     // Configure pins as analog inputs
@@ -208,7 +207,7 @@ void ConfigurePins(void)
 }
 
 
-//H BRIDGE FUNCTOINS
+//H BRIDGE FUNCTIONS FOR CONTROLLING WHEEL MOTORS
 
 void turn_left() {
 
@@ -258,21 +257,24 @@ void stop() {
 }
 
 
-//SERVO ROUTINE
+
+//SERVO COIN PICKUP ROUTINE
 
 void pick_up_coin(){
 
 int i;
+		//starting point for arm
 		waitms(250);
 		ISR_pwm1=95;
 		waitms(250);
-
 		ISR_pwm2=240;
 		waitms(250);
 
+		//pivot base of arm to the right
 		ISR_pwm1=60;
 		waitms(1000);
 
+		//lower arm to ground to sweep for coin
 		ISR_pwm2=90;
 		//turn magnet on
 		waitms(1000);
@@ -280,7 +282,7 @@ int i;
 		LATBbits.LATB15 = 1;
 	
 	
-		//turn ISR_pwm1 from 60 to 200 over a few seconds
+		//turn ISR_pwm1 (base of arm) from 60 to 200 over a few seconds to sweep ground
 		waitms(100);
 		waitms(100);
 		ISR_pwm1=70;
@@ -319,7 +321,7 @@ int i;
 		waitms(1000);
 
 	
-		//bring ISR_pwm2 from 90 to 180 with delays
+		//bring ISR_pwm2 from 90 to 180 with delays(raise arm)
 		 
 		for(i=0;i<=15;i++){
 		ISR_pwm2=90+i*8;
@@ -331,7 +333,7 @@ int i;
 		waitms(1000);
 
 		
-		//bring ISR_pwm1 from 160 to 240
+		//bring ISR_pwm1 from 160 to 240(pivot arm to drop coin in bucket)
 		for(i=0;i<20;i++){
 		ISR_pwm1=160+i*4;
 		waitms(100);
@@ -429,7 +431,7 @@ int perim1,perim2,i;
 			perim2=0;
 		}
 		
-		//trigger LED if either perimiter detector works
+
 		if((perim1||perim2)==1){
 			return 1;
 
@@ -441,7 +443,7 @@ int perim1,perim2,i;
 
 }
 
-//RANDOM FUNCTION
+//RANDOM NUMBER GENERATOR FUNCTION
 
 int random_time(seed,n){
 
@@ -457,12 +459,12 @@ int random_time(seed,n){
 }
 
 
-// In order to keep this as nimble as possible, avoid
-// using floating point or printf() on any of its forms!
+
 void main(void)
 {	
 	int counter=0;
 	int n=0;
+	//initialize magnet as off
 	LATBbits.LATB15 = 0;
 	//TRISBbits.TRISB6 = 0; //pin6 is output for LED
 	//TRISBbits.TRISB4 = 0; //pin4 is output for LED
@@ -486,7 +488,7 @@ void main(void)
     //TRISBbits.TRISB6 = 0;
 	//LATBbits.LATB6 = 0;	
     
-    waitms(500); // Give PuTTY time to start
+    waitms(500); // Give PuTTY time to start (PuTTY is a serial console used for debugging)
 	uart_puts("\x1b[2J\x1b[1;1H"); // Clear screen using ANSI escape sequence.
 	uart_puts("\r\nPIC32 multi I/O example.\r\n");
 	uart_puts("Measures the voltage at channels 4 and 5 (pins 6 and 7 of DIP28 package)\r\n");
@@ -504,26 +506,21 @@ void main(void)
 	}
 	average=average/10.0;
 	
-	
+	//initialize arm position
 	ISR_pwm1=95;
 	ISR_pwm2=240;
+
+	//main while loop for robot function
 	while(1)
 	{
 	
+	//stop once 20 coins have been picked up
 	if(counter==20){
 		break;
 	}
 	
 	
-	//perim=detect_perimeter();
-	//PrintNumber(perim, 10, 3);
-	//metal=detect_metal(0.0);
-	//PrintNumber(metal, 10, 3);
-		//LATBbits.LATB6=detect_metal(average);
-		//LATBbits.LATB4=detect_perimeter();
-	
-	//pick_up_coin();
-	
+
 
 
 
@@ -564,74 +561,7 @@ void main(void)
 	
 
 	
-	
-	
-/*   	adcval = ADCRead(4); // note that we call pin AN4 (RB2) by it's analog number
-		uart_puts("ADC[4]=0x");
-		PrintNumber(adcval, 16, 3);
-		uart_puts(", V=");
-		v=(adcval*3290L)/1023L; // 3.290 is VDD
-		PrintNumber(v/1000, 10, 1);
-		uart_puts(".");
-		PrintNumber(v%1000, 10, 3);
-		uart_puts("V ");
 
-		adcval=ADCRead(5);
-		uart_puts("ADC[5]=0x");
-		PrintNumber(adcval, 16, 3);
-		uart_puts(", V=");
-		v=(adcval*3290L)/1023L; // 3.290 is VDD
-		PrintNumber(v/1000, 10, 1);
-		uart_puts(".");
-		PrintNumber(v%1000, 10, 3);
-		uart_puts("V ");
-
-		count=GetPeriod(100);
-		if(count>0)
-		{
-			f=((SYSCLK/2L)*100L)/count;
-			uart_puts("f=");
-			PrintNumber(f, 10, 7);
-			uart_puts("Hz, count=");
-			PrintNumber(count, 10, 6);
-			uart_puts("          \r");
-		}
-		else
-		{
-			uart_puts("NO SIGNAL                     \r");
-		}
-*/
-		// Now toggle the pins on/off to see if they are working.
-		// First turn all off:
-	/*	LATAbits.LATA0 = 0;	
-		LATAbits.LATA1 = 0;			
-		LATBbits.LATB0 = 0;			
-		LATBbits.LATB1 = 0;		
-		LATAbits.LATA2 = 0;			
-		// Now turn on one of the outputs per loop cycle to check
-		switch (LED_toggle++)
-		{
-			case 0:
-				LATAbits.LATA0 = 1;
-				break;
-			case 1:
-				LATAbits.LATA1 = 1;
-				break;
-			case 2:
-				LATBbits.LATB0 = 1;
-				break;
-			case 3:
-				LATBbits.LATB1 = 1;
-				break;
-			case 4:
-				LATAbits.LATA2 = 1;
-				break;
-			default:
-				break;
-		}
-		if(LED_toggle>4) LED_toggle=0;
-
-		*/
 	}
 	//stop after 20 coins
 	stop();
