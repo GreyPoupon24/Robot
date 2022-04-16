@@ -33,6 +33,9 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 
 
 
+
+
+
 The robot has 2 modes based on different versions of the code
 
 The first version will drive around and if it detects a perimeter(wire with 16khz square wave) it will back up and turn right for a randomized amount of time. 
