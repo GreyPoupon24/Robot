@@ -64,6 +64,8 @@ code1_loadcell.ino is arduino code to be loaded onto an atmega to classify coins
 
 usart.c and usart.h provide some functions for serial console I/O which served useful for debugging
 
+HX711.cpp and HX711.h are for the arduino library used to interface with the load cell through the HX711 ADC/amplifier
+
 
 
 
