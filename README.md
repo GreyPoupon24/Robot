@@ -7,6 +7,21 @@ Amrit Sahota
 Brandon Seo
 Raul Vazquez Guerrero
 
+
+VIDEO DEMO LINK
+https://www.youtube.com/watch?v=IEJqTksT0a4
+
+0:00 Picking up 20 coins
+6:44 controlling with joystick controller
+8:10 explaining how we classify different coins
+8:50 demoing classification of coins
+
+
+
+
+
+
+
 The robot has 2 modes based on different versions of the code
 
 The first version will drive around and if it detectes a perimteter(wire with 16khz sqare wave) it will back up and turn
