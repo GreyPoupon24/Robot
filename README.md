@@ -52,10 +52,39 @@ The 9V battery is stepped down to 5v and then 3.3v through voltage regulators
 
 Optocouplers allow for interface between the 3.3V outputs of the PIC32 with the Servos, H bridges, and magnet control MOSFET that all need 6V.
 
+
 MANUAL CONTROL
 
-Two joysticks, each with an X and Y direction are used to give the user manual control of the robot. Four ADC inputs are needed so the manual control configuration
-requires unplugging the perimeter detectors from ADC pins 4 and 5 of the PIC32. 
+Manual control is achieved through a wired controller with joysticks to control the robot's movement and a switch to toggle the magnet on and off
+
+Two joysticks, each with an X and Y direction outputs are used to give the user manual control of the robot. Four ADC inputs are needed, so the manual control configuration
+requires unplugging the perimeter detectors from ADC pins 4 and 5 of the PIC32. The magnet is also hooked up to a switch on the controller
+
+The joysticks output an analog signal between 3.3V and 0v depending on the direction it is moved in, resting at about 1.6V with no movement. Threshold outputs for the 
+ADC pins were used for the PIC32 to decide when to move the robot.
+
+The two outputs of one joystick move the robot forwards/backwards for one and turn left/right for the other.
+The two outputs of another joystick pivot the base of the robot's servo arm left/right for one and move the arm up/down for the other.
+
+The magnet is controlled by connecting it to 6V through a toggle switch on the controller.
+
+
+CLASSIFYING COINS
+
+The hardware to classify coins functions independant of the hardware for the rest of the robot except for a 5V power supply from the same voltage regualtor.
+
+The coins are classified using a load cell that notices when a coin is placed in the bucket and uses the difference in weight to classify the type of coin.
+
+The load cell's values are amplified and converted to digital signals through an HX711 ADC/amplifier. The data from the HX711 is read using 24 bit SPI with an 
+ATMEL ATMEGA microcontorller. The code to interface with the HX711 comes from an arduino library. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attatched to a breadboard on the robot to save space.
+
+The type of coin is displayed on an LCD screen connected to the ATMEGA.
+
+
+
+
+
+
 
 
 
