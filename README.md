@@ -11,7 +11,7 @@ Amrit Sahota
 
 Brandon Seo
 
-Raul Vazquez Guerrero
+Raul Vazquez Guerrero  
 
 
 
@@ -24,7 +24,7 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 
 8:10 explaining how we classify different coins
 
-8:50 demoing classification of coins
+8:50 demoing classification of coins  
 
 
 
@@ -43,7 +43,7 @@ The robot also contains a load cell which it uses to classify coins based on mas
 
 The main firmware for the robot runs on a PIC32 microcontroller
 
-The code for classifying coins with a load cell runs on an ATMEL ATMEGA microcontroller with firmware loaded onto it using an Arduino UNO.
+The code for classifying coins with a load cell runs on an ATMEL ATMEGA microcontroller with firmware loaded onto it using an Arduino UNO.  
 
 
 SOURCE CODE
@@ -64,7 +64,7 @@ code1_loadcell.ino is arduino code to be loaded onto an atmega to classify coins
 
 usart.c and usart.h provide some functions for serial console I/O which served useful for debugging
 
-HX711.cpp and HX711.h are for the arduino library used to interface with the load cell through the HX711 ADC/amplifier
+HX711.cpp and HX711.h are for the arduino library used to interface with the load cell through the HX711 ADC/amplifier  
 
 
 
@@ -87,7 +87,7 @@ The robot's arm is moved by controlling 2 servo motors using PWM(pulse width mod
 One servo pivots the base of the arm while another servo raises and lowers the arm
 
 The arm picks up coins with an electromagnet on the end that is turned on and off by using an output signal to open the channel on an N-type mosfet
-allowing current to flow through the magnet.
+allowing current to flow through the magnet.  
 
 POWER SUPPLY
 
@@ -101,7 +101,7 @@ The 9V battery is stepped down to 5v and then 3.3v through voltage regulators
 
 3.3V is used to power the PIC32 and joysticks.
 
-Optocouplers allow for interface between the 3.3V outputs of the PIC32 with the Servos, H bridges, and magnet control MOSFET that all need 6V.
+Optocouplers allow for interface between the 3.3V outputs of the PIC32 with the Servos, H bridges, and magnet control MOSFET that all need 6V.  
 
 
 MANUAL CONTROL
@@ -117,7 +117,7 @@ ADC pins were used for the PIC32 to decide when to move the robot.
 The two outputs of one joystick move the robot forwards/backwards for one and turn left/right for the other.
 The two outputs of another joystick pivot the base of the robot's servo arm left/right for one and move the arm up/down for the other.
 
-The magnet is controlled by connecting it to 6V through a toggle switch on the controller.
+The magnet is controlled by connecting it to 6V through a toggle switch on the controller.  
 
 
 CLASSIFYING COINS
@@ -129,7 +129,7 @@ The coins are classified using a load cell that notices when a coin is placed in
 The load cell's values are amplified and converted to digital signals through an HX711 ADC/amplifier. The data from the HX711 is read using 24 bit SPI with an 
 ATMEL ATMEGA microcontroller. The code to interface with the HX711 comes from an arduino library avaliable at https://github.com/bogde/HX711. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attached to a breadboard on the robot to save space.
 
-The type of coin is displayed on an LCD screen connected to the ATMEGA.
+The type of coin is displayed on an LCD screen connected to the ATMEGA.  
 
 
 
