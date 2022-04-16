@@ -24,7 +24,7 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 
 8:10 explaining how we classify different coins
 
-8:50 demoing classification of coins  
+8:50 demoing classification of coins<br />  
 
 
 
