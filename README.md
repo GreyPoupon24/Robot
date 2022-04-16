@@ -56,6 +56,8 @@ Robot_Base.c is for automatically finding coins and picking them up
 
 Robot_Base_with_joystick.c is for giving the user manual control of the robot's movement
 
+Robot_Base.mk is a makefile to be used for compiling the robot's code and flash loading it onto the PIC32
+
 
 
 code1_loadcell.ino is arduino code to be loaded onto an atmega to classify coins with a load cell and display on an LCD
