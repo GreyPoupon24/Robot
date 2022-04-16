@@ -28,8 +28,8 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 
 The robot has 2 modes based on different versions of the code
 
-The first version will drive around and if it detects a perimeter(wire with 16khz square wave) it will back up and turn
-If it encounters a coin, it will pick it up with a magnetic arm and place it in a bucket.
+The first version will drive around and if it detects a perimeter(wire with 16khz square wave) it will back up and turn right for a randomized amount of time. 
+If it encounters a coin, it will back up for 0.4 seconds, pick it up with a magnetic arm, and drop it in a bucket.
 The robot also contains a load cell which it uses to classify coins based on mass and an LCD screen to display the coin type. 
 
 The main firmware for the robot runs on a PIC32 microcontroller
