@@ -20,7 +20,7 @@
 volatile int ISR_pwm1=95, ISR_pwm2=240, ISR_cnt=0;
 
 // The Interrupt Service Routine for timer 1 is used to generate one or more standard
-// hobby  signals.  The servo signal has a fixed period of 20ms and a pulse width
+// servo PWM signals.  The servo signal has a fixed period of 20ms and a pulse width
 // between 0.6ms and 2.4ms.
 
 
