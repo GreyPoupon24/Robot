@@ -1,11 +1,18 @@
 # Coin picking and identifying robot
 This robot was made as a final project for ELEC291 (electrical engineering design studio) with 6 students total
+
 Peter van den Doel
+
 Oliver Kis
+
 Eric Lim
+
 Amrit Sahota
+
 Brandon Seo
+
 Raul Vazquez Guerrero
+
 
 
 VIDEO DEMO LINK
