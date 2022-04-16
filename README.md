@@ -105,7 +105,7 @@ The hardware to classify coins functions independent of the hardware for the res
 The coins are classified using a load cell that notices when a coin is placed in the bucket and uses the difference in weight to classify the type of coin.
 
 The load cell's values are amplified and converted to digital signals through an HX711 ADC/amplifier. The data from the HX711 is read using 24 bit SPI with an 
-ATMEL ATMEGA microcontroller. The code to interface with the HX711 comes from an arduino library. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attached to a breadboard on the robot to save space.
+ATMEL ATMEGA microcontroller. The code to interface with the HX711 comes from an arduino library avaliable at https://github.com/bogde/HX711. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attached to a breadboard on the robot to save space.
 
 The type of coin is displayed on an LCD screen connected to the ATMEGA.
 
