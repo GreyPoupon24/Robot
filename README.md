@@ -24,7 +24,7 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 
 The robot has 2 modes based on different versions of the code
 
-The first version will drive around and if it detectes a perimteter(wire with 16khz sqare wave) it will back up and turn
+The first version will drive around and if it detects a perimeter(wire with 16khz square wave) it will back up and turn
 If it encounters a coin, it will pick it up with a magnetic arm and place it in a bucket.
 The robot also contains a load cell which it uses to classify coins based on mass and an LCD screen to display the coin type. 
 
@@ -35,17 +35,17 @@ The code for classifying coins with a load cell runs on an ATMEL ATMEGA microcon
 
 DETECTION
 
-Coins are detected using a metal detector made from a Colpitt's osscilator made with a CMOS inverter with an inductance that varies in response to magnetic metals.
+Coins are detected using a metal detector made from a Colpitts oscillator made with a CMOS inverter with an inductance that varies in response to magnetic metals.
 The circuit's frequency response changes and the PIC32 checks that it passes a threshold.
 
-The perimeter (wire with 16khz sqare wave) was created by passing an output singal from a 555timer astable osscilator through a very long wire
+The perimeter (wire with 16khz square wave) was created by passing an output signal from a 555timer astable oscillator through a very long wire
 
-The perimeter is detected using a tank circuit with a resonsnat frequency of 16khz. The output is passed through a non inverting amplifier, then a diode to remove
+The perimeter is detected using a tank circuit with a resonant frequency of 16khz. The output is passed through a non inverting amplifier, then a diode to remove
 negative voltages, and finally fed into the PIC32's onboard ADC to check if it passes a certain threshold. 
 
 ELECTROMECHANICAL CONSIDERATIONS
 
-The wheels are controlled using 2 H-Bridges hooked up to DC motors and impliments stick and slip steering.
+The wheels are controlled using 2 H-Bridges hooked up to DC motors and implements stick and slip steering.
 
 The robot's arm is moved by controlling 2 servo motors using PWM(pulse width modulation) controls.
 One servo pivots the base of the arm while another servo raises and lowers the arm
@@ -55,13 +55,13 @@ allowing current to flow through the magnet.
 
 POWER SUPPLY
 
-the robot is powered using four AA batteries to create a 6V source and one 9V batteries to create a 9V source. 
+the robot is powered using four AA batteries to create a 6V source and one 9V battery to create a 9V source. 
 
 The 6V batteries power the electromagnet, the H bridges, and the servo motors. 
 
 The 9V battery is stepped down to 5v and then 3.3v through voltage regulators
 
-5V is used to power the Colpitt's osscilaotr for the metal detector and the OP-amp for the perimeter detctors 
+5V is used to power the Colpitts oscillator for the metal detector and the OP-amp for the perimeter detectors 
 
 3.3V is used to power the PIC32 and joysticks.
 
@@ -86,27 +86,14 @@ The magnet is controlled by connecting it to 6V through a toggle switch on the c
 
 CLASSIFYING COINS
 
-The hardware to classify coins functions independant of the hardware for the rest of the robot except for a 5V power supply from the same voltage regualtor.
+The hardware to classify coins functions independent of the hardware for the rest of the robot except for a 5V power supply from the same voltage regulator.
 
 The coins are classified using a load cell that notices when a coin is placed in the bucket and uses the difference in weight to classify the type of coin.
 
 The load cell's values are amplified and converted to digital signals through an HX711 ADC/amplifier. The data from the HX711 is read using 24 bit SPI with an 
-ATMEL ATMEGA microcontorller. The code to interface with the HX711 comes from an arduino library. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attatched to a breadboard on the robot to save space.
+ATMEL ATMEGA microcontroller. The code to interface with the HX711 comes from an arduino library. The arduino code is loaded onto the ATMEGA using an arduino as a flash loader and then the ATMEGA is attached to a breadboard on the robot to save space.
 
 The type of coin is displayed on an LCD screen connected to the ATMEGA.
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
