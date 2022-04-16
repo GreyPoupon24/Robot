@@ -12,9 +12,13 @@ VIDEO DEMO LINK
 https://www.youtube.com/watch?v=IEJqTksT0a4
 
 0:00 Picking up 20 coins
+
 6:44 controlling with joystick controller
+
 8:10 explaining how we classify different coins
+
 8:50 demoing classification of coins
+
 
 
 
