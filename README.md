@@ -62,6 +62,8 @@ Robot_Base.mk is a makefile to be used for compiling the robot's code and flash 
 
 code1_loadcell.ino is arduino code to be loaded onto an atmega to classify coins with a load cell and display on an LCD
 
+usart.c and usart.h provide some functions for serial console I/O which served useful for debugging
+
 
 
 
