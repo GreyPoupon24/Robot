@@ -50,11 +50,15 @@ SOURCE CODE
 
 source code is contained in
 
-Robot_Base.c,Robot_Base_with_joystick.c,code1_loadcell.c,and Robot_Base.mk
+Robot_Base.c,Robot_Base_with_joystick.c,code1_loadcell.ino,and Robot_Base.mk
 
 Robot_Base.c is for automatically finding coins and picking them up
 
 Robot_Base_with_joystick.c is for giving the user manual control of the robot's movement
+
+
+
+code1_loadcell.ino is arduino code to be loaded onto an atmega to classify coins with a load cell and display on an LCD
 
 
 
