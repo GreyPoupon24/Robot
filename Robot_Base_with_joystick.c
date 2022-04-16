@@ -20,7 +20,7 @@
 volatile int ISR_pwm1=95, ISR_pwm2=240, ISR_cnt=0;
 
 // The Interrupt Service Routine for timer 1 is used to generate one or more standard
-// servo PWM signals.  The servo signal has a fixed period of 20ms and a pulse width
+// PWM control signals.  The servo signal has a fixed period of 20ms and a pulse width
 // between 0.6ms and 2.4ms.
 
 
@@ -51,7 +51,7 @@ void __ISR(_TIMER_1_VECTOR, IPL5SOFT) Timer1_Handler(void)
 
 void SetupTimer1 (void)
 {
-	// Explanation here: https://www.youtube.com/watch?v=bu6TTZHnMPY
+
 	__builtin_disable_interrupts();
 	PR1 =(SYSCLK/FREQ)-1; // since SYSCLK/FREQ = PS*(PR1+1)
 	TMR1 = 0;
@@ -85,7 +85,7 @@ void waitms(int len)
 #define PIN_PERIOD (PORTB&(1<<5))
 #define joystick2_button (PORTB&(1<<14))
 
-// GetPeriod() seems to work fine for frequencies between 200Hz and 700kHz.
+//determines the period of a square wave signal
 long int GetPeriod (int n)
 {
 	int i;
@@ -159,8 +159,7 @@ void PrintNumber(long int val, int Base, int digits)
 	uart_puts(&buff[j+1]);
 }
 
-// Good information about ADC in PIC32 found here:
-// http://umassamherstm5.org/tech-tutorials/pic32-tutorials/pic32mx220-tutorials/adc
+//configure analog-digital converters
 void ADCConf(void)
 {
     AD1CON1CLR = 0x8000;    // disable ADC before configuration
@@ -181,6 +180,7 @@ int ADCRead(char analogPIN)
     return ADC1BUF0;             // result stored in ADC1BUF0
 }
 
+//configures I/O pins
 void ConfigurePins(void)
 {
     // Configure pins as analog inputs
@@ -219,7 +219,7 @@ void ConfigurePins(void)
 }
 
 
-//H BRIDGE FUNCTOINS
+//H BRIDGE FUNCTIONS FOR CONTROLLING WHEEL MOTORS
 
 void turn_left() {
 
@@ -269,7 +269,8 @@ void stop() {
 }
 
 
-//SERVO ROUTINE
+//SERVO COIN PICKUP ROUTINE
+//NOT USED IN THIS VERSION OF THE CODE
 
 void pick_up_coin(){
 
@@ -291,7 +292,7 @@ int i;
 		LATBbits.LATB15 = 1;
 	
 	
-		//turn ISR_pwm1 from 60 to 200 over a few seconds
+		//turn ISR_pwm1 (base of arm) from 60 to 200 over a few seconds to sweep ground
 		waitms(100);
 		waitms(100);
 		ISR_pwm1=70;
@@ -330,7 +331,7 @@ int i;
 		waitms(1000);
 
 	
-		//bring ISR_pwm2 from 90 to 180 with delays
+		//bring ISR_pwm2 from 90 to 180 with delays(raise arm)
 		 
 		for(i=0;i<=15;i++){
 		ISR_pwm2=90+i*8;
@@ -342,7 +343,7 @@ int i;
 		waitms(1000);
 
 		
-		//bring ISR_pwm1 from 160 to 240
+		//bring ISR_pwm1 from 160 to 240(pivot arm to drop coin in bucket)
 		for(i=0;i<20;i++){
 		ISR_pwm1=160+i*4;
 		waitms(100);
@@ -393,6 +394,8 @@ int detect_metal(float average){
 		}
 
 }
+
+//NOTE PREIMTETER DETECTION ADC PINS ARE USED FOR JOYSTICKS IN THIS CODE
 
 int detect_perimeter(){
 float vmax,voltage,vavg;
@@ -452,7 +455,7 @@ int perim1,perim2,i;
 
 }
 
-//RANDOM FUNCTION
+//RANDOM NUMBER GENERATOR FUNCTION
 
 int random_time(seed,n){
 
@@ -468,8 +471,7 @@ int random_time(seed,n){
 }
 
 
-// In order to keep this as nimble as possible, avoid
-// using floating point or printf() on any of its forms!
+
 void main(void)
 {	
 	float joystick2_x,joystick2_y=2.5;
@@ -477,6 +479,7 @@ void main(void)
 	int mode=0;
 	int counter=0;
 	int n=0;
+	//initialize magnet as off
 	LATBbits.LATB15 = 0;
 	//TRISBbits.TRISB6 = 0; //pin6 is output for LED
 	//TRISBbits.TRISB4 = 0; //pin4 is output for LED
@@ -500,7 +503,7 @@ void main(void)
     //TRISBbits.TRISB6 = 0;
 	//LATBbits.LATB6 = 0;	
     
-    waitms(500); // Give PuTTY time to start
+    waitms(500); // Give PuTTY time to start (PuTTY is a serial console used for debugging)
 	uart_puts("\x1b[2J\x1b[1;1H"); // Clear screen using ANSI escape sequence.
 	uart_puts("\r\nPIC32 multi I/O example.\r\n");
 	uart_puts("Measures the voltage at channels 4 and 5 (pins 6 and 7 of DIP28 package)\r\n");
@@ -529,17 +532,14 @@ void main(void)
 	}
 	
 	
-	//perim=detect_perimeter();
-	//PrintNumber(perim, 10, 3);
-	//metal=detect_metal(0.0);
-	//PrintNumber(metal, 10, 3);
-		//LATBbits.LATB6=detect_metal(average);
-		//LATBbits.LATB4=detect_perimeter();
-	
-	//pick_up_coin();
+
 	
 
+//this if statement allows us to easily ignore the follwing code to enter manual control mode, mode=0
 if(mode==1){
+	
+	
+	/*
 
 //move forwards by default
 	move_forwards();
@@ -572,9 +572,22 @@ if(mode==1){
 	
 	move_forwards(); //move forwards by defualt
 	
+	*/
+
 	}
+
+
+	
+
+
+	//THIS IS WHERE MANUAL CONTROL EXISTS
+
 	else{
 	
+
+	//MOVING ARM UP
+
+
 	joystick2_y=ADCRead(11)*3.3/1023.0;
 	PrintNumber(joystick2_y, 10, 3);
 	uart_puts("\r");
@@ -591,11 +604,14 @@ if(mode==1){
 			uart_puts("\r");
 			//travel up at speed such that arm goes from bottom to top in 2 seconds
 			if(ISR_pwm2<240){
+				//move servo arm up
 				ISR_pwm2+=5;
 				waitms(65);	
 			}
 		}
 	} 
+
+	//MOVING ARM DOWN
 	
 		joystick2_y=ADCRead(11)*3.3/1023.0;
 		//vertical downwards movement
@@ -610,8 +626,9 @@ if(mode==1){
 			uart_puts("moving down");
 			PrintNumber(ISR_pwm2, 10, 3);
 			uart_puts("\r");
-			//travel up at speed such that arm goes from top to bottom in 2 seconds
+			//travel down at speed such that arm goes from top to bottom in 2 seconds
 			if(ISR_pwm2>90){
+				//move servo arm down
 				ISR_pwm2-=5;
 				waitms(65);	
 			}
@@ -621,6 +638,9 @@ if(mode==1){
 	
 	
 	}
+
+	//PIVOTING ARM TO LEFT
+
 	joystick2_x=ADCRead(12)*3.3/1023.0;
 	
 	//horizontal left movement
@@ -630,6 +650,7 @@ if(mode==1){
 			joystick2_x=ADCRead(12)*3.3/1023.0;
 			//travel left at speed such that arm goes from left to right (60 to 240) in 2s
 			if(joystick2_x<240){
+				//pivot base of arm to left
 				ISR_pwm1+=5;
 				waitms(55);	
 			}
@@ -637,6 +658,10 @@ if(mode==1){
 	} 
 	
 	
+
+	//PIVOTING ARM TO RIGHT
+
+
 	joystick2_x=ADCRead(12)*3.3/1023.0;
 	//horizontal right movement
 	if(joystick2_x<0.6){
@@ -645,6 +670,7 @@ if(mode==1){
 		joystick2_x=ADCRead(12)*3.3/1023.0;
 			//travel right at speed such that arm goes from right to left (240 to 60) in 2s
 			if(ISR_pwm1>60){
+				//pivot base of arm to rght
 				ISR_pwm1-=5;
 				waitms(55);	
 			}
@@ -661,7 +687,6 @@ if(mode==1){
 	
 	 
 	joystick1_x=ADCRead(4)*3.3/1023.0;
-	//horizontal right movement
 	if(joystick1_x<0.6){
 			//set limit greater than theshold so that there isn't jittering from noise
 		while(joystick1_x<0.9){
@@ -678,9 +703,9 @@ if(mode==1){
 	stop();
 	
 	
+	//FORWARDS MOVEMENT
+
 		joystick1_x=ADCRead(4)*3.3/1023.0;
-	
-	//horizontal left movement
 	if(joystick1_x>2.4){
 			//set limit lower than theshold so that there isn't jittering from noise
 		while(joystick1_x>2.1){
@@ -692,7 +717,7 @@ if(mode==1){
 	
 	stop();
 	
-	
+	//LEFT TURN
 	
 		joystick1_y=ADCRead(5)*3.3/1023.0;
 	//turn left
@@ -712,6 +737,8 @@ if(mode==1){
 	stop();
 	
 	
+	//RIGHT TURN
+
 		joystick1_y=ADCRead(5)*3.3/1023.0;
 	
 	//horizontal left movement
@@ -726,89 +753,19 @@ if(mode==1){
 	
 	stop();
 	
-/*	
-if(joystick2_button){
-waitms(50);
-	
-if(joystick2_button){
-while(joystick2_button){}
-LATBbits.LATB15=!LATBbits.LATB15;
-}
-}
-	*/
 
 
-
-	//end of big while loop
+	//end of main while loop
 	}
-	//stop after 20 coins
+
+
+
 	stop();
 
 
 
 
 	
-	
-	//CODE FOR SERVO CONROLS, CAN COMMENT THIS OUT
-	
-	/*
-	
-	//vertical upwards movement
-	if(ADC(x)>treshold){
-			//set limit lower than theshold so that there isn't jittering from noise
-		while(ADC(x)>threshold-something){
-			//travel up at speed such that arm goes from bottom to top in 2 seconds
-			if(ISR_pwm2<240){
-				ISR_pwm2+=5;
-				waitms(65);	
-			}
-		}
-	} 
-	
-		//vertical downwards movement
-	if(ADC(x)<treshold){
-			//set limit greater than theshold so that there isn't jittering from noise
-		while(ADC(x)<threshold+something){
-			//travel up at speed such that arm goes from top to bottom in 2 seconds
-			if(ISR_pwm2>90){
-				ISR_pwm2-=5;
-				waitms(65);	
-			}
-		}
-	} 
-	
-	
-	
-	
-	//CODE FOR SERVO CONROLS, CAN COMMENT THIS OUT
-	
-	//horizontal left movement
-	if(ADC(y)>treshold){
-			//set limit lower than theshold so that there isn't jittering from noise
-		while(ADC(y)>threshold-something){
-			//travel left at speed such that arm goes from left to right (60 to 240) in 2s
-			if(ISR_pwm1<240){
-				ISR_pwm1+=5;
-				waitms(55);	
-			}
-		}
-	} 
-	
-	
-		
-	//horizontal right movement
-	if(ADC(y)<treshold){
-			//set limit greater than theshold so that there isn't jittering from noise
-		while(ADC(y)<threshold+something){
-			//travel right at speed such that arm goes from right to left (240 to 60) in 2s
-			if(ISR_pwm1>60){
-				ISR_pwm1-=5;
-				waitms(55);	
-			}
-		}
-	} 
-	
-	*/
 	
 	
 //end of main
