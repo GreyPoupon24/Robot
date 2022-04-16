@@ -27,10 +27,6 @@ https://www.youtube.com/watch?v=IEJqTksT0a4
 8:50 demoing classification of coins
 
 
-SOURCE CODE IS FOUND IN Robot_Base.c,Robot_Base_with_joystick.c,code1_loadcell.c,and 
-
-
-
 
 
 
@@ -48,6 +44,19 @@ The robot also contains a load cell which it uses to classify coins based on mas
 The main firmware for the robot runs on a PIC32 microcontroller
 
 The code for classifying coins with a load cell runs on an ATMEL ATMEGA microcontroller with firmware loaded onto it using an Arduino UNO.
+
+
+SOURCE CODE
+
+source code is contained in
+
+Robot_Base.c,Robot_Base_with_joystick.c,code1_loadcell.c,and Robot_Base.mk
+
+Robot_Base.c is for automatically finding coins and picking them up
+
+Robot_Base_with_joystick.c is for giving the user manual control of the robot's movement
+
+
 
 
 DETECTION
