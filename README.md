@@ -83,7 +83,7 @@ MANUAL CONTROL
 
 Manual control is achieved through a wired controller with joysticks to control the robot's movement and a switch to toggle the magnet on and off
 
-Two joysticks, each with an X and Y direction outputs are used to give the user manual control of the robot. Four ADC inputs are needed, so the manual control configuration requires unplugging the perimeter detectors from ADC pins 4 and 5 of the PIC32. The magnet is also hooked up to a switch on the controller
+Two joysticks, each with an X and Y direction output are used to give the user manual control of the robot. Four ADC inputs are needed, so the manual control configuration requires unplugging the perimeter detectors from ADC pins 4 and 5 of the PIC32. The magnet is also hooked up to a switch on the controller
 
 The joysticks output an analog signal between 3.3V and 0v depending on the direction it is moved in, resting at about 1.6V with no movement. Threshold outputs for the ADC pins were used for the PIC32 to decide when to move the robot.
 
